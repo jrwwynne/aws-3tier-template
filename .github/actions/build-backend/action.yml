@@ -1,0 +1,22 @@
+name: Build backend
+description: Installs dependencies, builds the Lambda package with esbuild, and produces backend/function.zip.
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: npm
+        cache-dependency-path: backend/package-lock.json
+
+    - name: Install dependencies
+      shell: bash
+      working-directory: backend
+      run: npm ci
+
+    - name: Build package
+      shell: bash
+      working-directory: backend
+      run: npm run build:package

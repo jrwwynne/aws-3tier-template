@@ -1,0 +1,45 @@
+name: Reusable — Lambda
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      aws_region:
+        required: true
+        type: string
+    secrets:
+      role_arn:
+        required: true
+      lambda_function_name:
+        required: true
+
+# Permissions are inherited from the caller workflow.
+# The caller must grant id-token: write for OIDC to work.
+
+jobs:
+  deploy:
+    name: Deploy Lambda (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: ./.github/actions/setup-aws
+        with:
+          role_arn: ${{ secrets.role_arn }}
+          aws_region: ${{ inputs.aws_region }}
+
+      - name: Build backend
+        uses: ./.github/actions/build-backend
+
+      - name: Deploy to Lambda
+        run: |
+          aws lambda update-function-code \
+            --function-name "${{ secrets.lambda_function_name }}" \
+            --zip-file fileb://backend/function.zip \
+            --region "${{ inputs.aws_region }}"

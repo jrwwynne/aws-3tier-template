@@ -1,0 +1,47 @@
+name: Deploy Infrastructure
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'infra/**'
+      - '.github/workflows/deploy-infra.yml'
+      - '.github/workflows/_reusable-terraform.yml'
+      - '.github/actions/setup-aws/**'
+      - '.github/actions/terraform-plan-apply/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'dev'
+        type: choice
+        options: [dev, prod]
+
+# Grant id-token: write so the reusable workflow can obtain OIDC credentials.
+# Without this the called workflow is only allowed id-token: none and
+# AssumeRoleWithWebIdentity will be rejected.
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-dev:
+    if: github.event_name == 'push' || inputs.environment == 'dev'
+    uses: ./.github/workflows/_reusable-terraform.yml
+    with:
+      environment: dev
+      working_directory: infra/environments/dev
+      aws_region: ap-southeast-2
+    secrets:
+      role_arn: ${{ secrets.INFRA_ROLE_ARN_DEV }}
+
+  deploy-prod:
+    if: inputs.environment == 'prod'
+    uses: ./.github/workflows/_reusable-terraform.yml
+    with:
+      environment: prod
+      working_directory: infra/environments/prod
+      aws_region: ap-southeast-2
+    secrets:
+      role_arn: ${{ secrets.INFRA_ROLE_ARN_PROD }}

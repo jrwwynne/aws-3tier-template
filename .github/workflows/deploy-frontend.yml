@@ -1,0 +1,57 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/deploy-frontend.yml'
+      - '.github/workflows/_reusable-frontend.yml'
+      - '.github/actions/setup-aws/**'
+      - '.github/actions/build-frontend/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'dev'
+        type: choice
+        options: [dev, prod]
+
+# Grant id-token: write so the reusable workflow can obtain OIDC credentials.
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-dev:
+    if: github.event_name == 'push' || inputs.environment == 'dev'
+    uses: ./.github/workflows/_reusable-frontend.yml
+    with:
+      environment: dev
+      aws_region: ap-southeast-2
+    secrets:
+      role_arn: ${{ secrets.FRONTEND_ROLE_ARN_DEV }}
+      s3_bucket: ${{ secrets.S3_BUCKET_NAME_DEV }}
+      cloudfront_distribution_id: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID_DEV }}
+      vite_api_url: ${{ secrets.VITE_API_URL_DEV }}
+      vite_cognito_user_pool_id: ${{ secrets.VITE_COGNITO_USER_POOL_ID_DEV }}
+      vite_cognito_client_id: ${{ secrets.VITE_COGNITO_CLIENT_ID_DEV }}
+      vite_cognito_hosted_ui_domain: ${{ secrets.VITE_COGNITO_HOSTED_UI_DOMAIN_DEV }}
+      vite_cognito_redirect_uri: ${{ secrets.VITE_COGNITO_REDIRECT_URI_DEV }}
+
+  deploy-prod:
+    if: inputs.environment == 'prod'
+    uses: ./.github/workflows/_reusable-frontend.yml
+    with:
+      environment: prod
+      aws_region: ap-southeast-2
+    secrets:
+      role_arn: ${{ secrets.FRONTEND_ROLE_ARN_PROD }}
+      s3_bucket: ${{ secrets.S3_BUCKET_NAME_PROD }}
+      cloudfront_distribution_id: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID_PROD }}
+      vite_api_url: ${{ secrets.VITE_API_URL_PROD }}
+      vite_cognito_user_pool_id: ${{ secrets.VITE_COGNITO_USER_POOL_ID_PROD }}
+      vite_cognito_client_id: ${{ secrets.VITE_COGNITO_CLIENT_ID_PROD }}
+      vite_cognito_hosted_ui_domain: ${{ secrets.VITE_COGNITO_HOSTED_UI_DOMAIN_PROD }}
+      vite_cognito_redirect_uri: ${{ secrets.VITE_COGNITO_REDIRECT_URI_PROD }}

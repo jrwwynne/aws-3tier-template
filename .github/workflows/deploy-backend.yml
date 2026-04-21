@@ -1,0 +1,45 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy-backend.yml'
+      - '.github/workflows/_reusable-lambda.yml'
+      - '.github/actions/setup-aws/**'
+      - '.github/actions/build-backend/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'dev'
+        type: choice
+        options: [dev, prod]
+
+# Grant id-token: write so the reusable workflow can obtain OIDC credentials.
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-dev:
+    if: github.event_name == 'push' || inputs.environment == 'dev'
+    uses: ./.github/workflows/_reusable-lambda.yml
+    with:
+      environment: dev
+      aws_region: ap-southeast-2
+    secrets:
+      role_arn: ${{ secrets.BACKEND_ROLE_ARN_DEV }}
+      lambda_function_name: ${{ secrets.LAMBDA_FUNCTION_NAME_DEV }}
+
+  deploy-prod:
+    if: inputs.environment == 'prod'
+    uses: ./.github/workflows/_reusable-lambda.yml
+    with:
+      environment: prod
+      aws_region: ap-southeast-2
+    secrets:
+      role_arn: ${{ secrets.BACKEND_ROLE_ARN_PROD }}
+      lambda_function_name: ${{ secrets.LAMBDA_FUNCTION_NAME_PROD }}

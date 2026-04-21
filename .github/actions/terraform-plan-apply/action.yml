@@ -1,0 +1,35 @@
+name: Terraform plan and apply
+description: Runs terraform init, validate, plan, and apply in the given working directory.
+
+inputs:
+  working_directory:
+    description: Path to the Terraform root module (e.g. infra/environments/dev)
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: '~1.6'
+
+    - name: Terraform init
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+      run: terraform init -input=false
+
+    - name: Terraform validate
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+      run: terraform validate
+
+    - name: Terraform plan
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+      run: terraform plan -input=false -out=tfplan
+
+    - name: Terraform apply
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+      run: terraform apply -input=false tfplan
